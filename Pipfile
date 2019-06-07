@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 scrapy = "*"
 mysql-connector = "*"
+pypiwin32 = "*"
 
 [requires]
 python_version = "3.7"

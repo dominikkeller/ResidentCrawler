@@ -1,6 +1,8 @@
 import csv
 import datetime
 import os
+from builtins import *
+
 import scrapy
 from .storage import connect
 from .item import ResidentItem
@@ -77,7 +79,7 @@ class ResidentSpider(scrapy.Spider):
         directory = os.path.dirname(os.path.realpath('__file__'))
 
         with open(os.path.join(directory, 'ResidentCrawler/data/overall_events.csv')) as input_file, open(
-                os.path.join(directory, 'ResidentCrawler/data/customized_overall_events.csv'), 'w') as output_file:
+                os.path.join(directory, 'ResidentCrawler/data/customized_overall_events.csv'), 'w', newline='') as output_file:
             writer = csv.writer(output_file)
             reader = csv.reader(input_file)
             for row in reader:
@@ -98,7 +100,7 @@ class ResidentSpider(scrapy.Spider):
 
         for row in csv_data:
             cursor.execute(
-                'INSERT INTO overall_fount(club_name, event_day, event_date, event_attending)VALUES("%s", "%s", "%s", "%s")' % (
+                'INSERT INTO overall_fount(club_name,event_day,event_date,event_attending)VALUES("%s", "%s", "%s", "%s")' % (
                 row[0], row[1], row[2], row[3]))
 
         cursor.execute(
