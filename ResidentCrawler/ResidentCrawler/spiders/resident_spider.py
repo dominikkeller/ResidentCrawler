@@ -16,7 +16,7 @@ class ResidentSpider(scrapy.Spider):
         urls = []
 
         # yyyy, m, d
-        start_date = datetime.date(2019, 2, 15)
+        start_date = datetime.date(2019, 5, 15)
         end_date = datetime.date.today()
 
         for dt in self.get_date_range(start_date, end_date):
