@@ -1,5 +1,6 @@
 import csv
 import datetime
+import configparser
 import os
 from builtins import *
 
@@ -7,11 +8,24 @@ import scrapy
 from .storage import connect
 from .item import ResidentItem
 
-
 class ResidentSpider(scrapy.Spider):
+
     name = "resident"
 
+    #Initializing Config
+    config = configparser.ConfigParser()
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, '../../config.ini')
+    config.read(filename)
+
+    #Set static variables
+    coe = config['Data']['coe']
+    oe = config['Data']['oe']
+    site_url = config['Data']['url']
+
     def start_requests(self):
+        self.clear_files()
+        print("Data files cleared")
 
         urls = []
 
@@ -20,7 +34,7 @@ class ResidentSpider(scrapy.Spider):
         end_date = datetime.date.today()
 
         for dt in self.get_date_range(start_date, end_date):
-            urls.append('https://www.residentadvisor.net/events/de/berlin/day/' + dt.strftime("%Y-%m-%d"))
+            urls.append(self.site_url + dt.strftime("%Y-%m-%d"))
 
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
@@ -36,22 +50,18 @@ class ResidentSpider(scrapy.Spider):
             yield event_item
 
     def closed(self, reason):
-        self.clear_files()
-        print("Data files cleared")
         self.logger.info("Spider" + reason)
         self.customize_csv()
         print("CSV customized")
         self.upload_to_database()
         print("Data uploaded to Database")
 
-
-    @staticmethod
-    def clear_files():
+    def clear_files(self):
 
         directory = os.path.dirname(os.path.realpath('__file__'))
 
-        input_file = open(os.path.join(directory, 'ResidentCrawler/data/overall_events.csv'), "w")
-        output_file = open(os.path.join(directory, 'ResidentCrawler/data/customized_overall_events.csv'), "w")
+        input_file = open(os.path.join(directory, self.oe), "w")
+        output_file = open(os.path.join(directory, self.coe), "w")
         input_file.truncate()
         output_file.truncate()
         input_file.close()
@@ -76,17 +86,31 @@ class ResidentSpider(scrapy.Spider):
         return converted_month
 
     @staticmethod
-    def customize_csv():
+    def change_umlaute(x):
+        x = x.replace('ä', 'ae')
+        x = x.replace('ü', 'ue')
+        x = x.replace('ß', 'ss')
+        x = x.replace('ö', 'oe')
+        x = x.replace('Ã¤', 'ae')
+        x = x.replace('Ã¼', 'ue')
+        x = x.replace('ÃŸ', 'ss')
+        x = x.replace('Ã¶', 'oe')
+        return x
 
-        directory = os.path.dirname(os.path.realpath('__file__'))
+    def customize_csv(self):
 
-        with open(os.path.join(directory, 'ResidentCrawler/data/overall_events.csv')) as input_file, open(
-                os.path.join(directory, 'ResidentCrawler/data/customized_overall_events.csv'), 'w', newline='') as output_file:
+        directory = os.path.dirname(os.path.realpath('_file_'))
+
+        with open(os.path.join(directory, self.oe)) as input_file, open(
+                os.path.join(directory, self.coe), 'w',
+                newline='') as output_file:
             writer = csv.writer(output_file)
             reader = csv.reader(input_file)
             for row in reader:
                 if len(row[1]) != 0 and len(row[3]) != 0:
                     if any(field.strip() for field in row):
+                        print(row[0])
+                        row[0] = self.change_umlaute(row[0])
                         writer.writerow(row)
 
     @staticmethod
@@ -102,11 +126,14 @@ class ResidentSpider(scrapy.Spider):
 
         for row in csv_data:
             cursor.execute(
-                'INSERT INTO overall_fount(club_name,event_day,event_date,event_attending)VALUES("%s", "%s", "%s", "%s")' % (
+                'INSERT INTO overall_fount(club_name,event_day,event_date,event_attending)'
+                'VALUES("%s", "%s", "%s", "%s")' % (
                 row[0], row[1], row[2], row[3]))
 
         cursor.execute(
-            '''UPDATE overall_fount SET club_name = REPLACE(club_name, "\'", ""), event_day = REPLACE(event_day, "\'", ""), event_date = REPLACE(event_date, "\'", ""), event_attending = REPLACE(event_attending, "\'", "")''')
+            '''UPDATE overall_fount SET club_name = REPLACE(club_name, "\'", ""),
+             event_day = REPLACE(event_day, "\'", ""), event_date = REPLACE(event_date, "\'", ""),
+              event_attending = REPLACE(event_attending, "\'", "")''')
 
         cursor.execute('DELETE FROM overall_fount WHERE club_name="club_name"')
 
