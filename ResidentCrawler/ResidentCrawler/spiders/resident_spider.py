@@ -16,7 +16,7 @@ class ResidentSpider(scrapy.Spider):
         urls = []
 
         # yyyy, m, d
-        start_date = datetime.date(2019, 5, 15)
+        start_date = datetime.date(2019, 2, 15)
         end_date = datetime.date.today()
 
         for dt in self.get_date_range(start_date, end_date):
@@ -36,12 +36,14 @@ class ResidentSpider(scrapy.Spider):
             yield event_item
 
     def closed(self, reason):
+        self.clear_files()
+        print("Data files cleared")
         self.logger.info("Spider" + reason)
         self.customize_csv()
         print("CSV customized")
         self.upload_to_database()
         print("Data uploaded to Database")
-        self.clear_files()
+
 
     @staticmethod
     def clear_files():
