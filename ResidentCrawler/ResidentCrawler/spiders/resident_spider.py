@@ -8,17 +8,17 @@ import scrapy
 from .storage import connect
 from .item import ResidentItem
 
-class ResidentSpider(scrapy.Spider):
 
+class ResidentSpider(scrapy.Spider):
     name = "resident"
 
-    #Initializing Config
+    # Initializing Config
     config = configparser.ConfigParser()
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, '../../config.ini')
     config.read(filename)
 
-    #Set static variables
+    # Set static variables
     coe = config['Data']['coe']
     oe = config['Data']['oe']
     site_url = config['Data']['url']
@@ -86,7 +86,8 @@ class ResidentSpider(scrapy.Spider):
         return converted_month
 
     @staticmethod
-    def change_umlaute(x):
+    def clean_names(x):
+        x = x.replace('™', '')
         x = x.replace('ä', 'ae')
         x = x.replace('ü', 'ue')
         x = x.replace('ß', 'ss')
@@ -107,10 +108,9 @@ class ResidentSpider(scrapy.Spider):
             writer = csv.writer(output_file)
             reader = csv.reader(input_file)
             for row in reader:
-                if len(row[1]) != 0 and len(row[3]) != 0:
+                if len(row[1]) != 0 and len(row[3]) != 0 and len(row[0]) != 0:
                     if any(field.strip() for field in row):
-                        print(row[0])
-                        row[0] = self.change_umlaute(row[0])
+                        row[0] = self.clean_names(row[0])
                         writer.writerow(row)
 
     @staticmethod
@@ -127,8 +127,8 @@ class ResidentSpider(scrapy.Spider):
         for row in csv_data:
             cursor.execute(
                 'INSERT INTO overall_fount(club_name,event_day,event_date,event_attending)'
-                'VALUES("%s", "%s", "%s", "%s")' % (
-                row[0], row[1], row[2], row[3]))
+                'VALUES("%s", "%s", "%s", "%s")' %
+                (row[0], row[1], row[2], row[3]))
 
         cursor.execute(
             '''UPDATE overall_fount SET club_name = REPLACE(club_name, "\'", ""),
